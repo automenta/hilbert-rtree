@@ -19,7 +19,7 @@ export class RTree {
     this.maxChildrenPerNode = maxChildrenPerNode;
   }
 
-  private recursiveSearchForOverlappingNodes(searchBoundingBox: BoundingBox, node: RTreeRectangle): Array<Record> {
+  private recursiveSearchOverlappingNodes(searchBoundingBox: BoundingBox, node: RTreeRectangle): Array<Record> {
     if (node.containedBy(searchBoundingBox)) {
       // If the query rectangles encapsulates this node, any data points stored within the node
       // rectangle should be returned by the search.
@@ -33,49 +33,78 @@ export class RTree {
       // Recursively search the rectangles intersected by the search query rectangle.
       return node.children
         .filter(n => n.overlaps(searchBoundingBox))
-        .map(n => this.recursiveSearchForOverlappingNodes(searchBoundingBox, n))
+        .map(n => this.recursiveSearchOverlappingNodes(searchBoundingBox, n))
         .reduce((acc, curr) => acc.concat(curr), []);
+    }
+  }
+
+  private recursiveVisitOverlappingNodes(searchBoundingBox: BoundingBox, node: RTreeRectangle, each: CallableFunction): void {
+    if (node.containedBy(searchBoundingBox)) {
+      // If the query rectangles encapsulates this node, any data points stored within the node
+      // rectangle should be returned by the search.
+      each(node.getSubtreeData());
+    } else if (node.isLeafNode() && node.overlaps(searchBoundingBox)) {
+      // If the query overlaps a leaf node, the leaf data shall be returned.
+      each(node.getSubtreeData());
+    } else {
+      // Recursively search the rectangles intersected by the search query rectangle.
+      node.children
+        .filter(n => n.overlaps(searchBoundingBox))
+        .forEach(n => {
+          this.recursiveVisitOverlappingNodes(searchBoundingBox, n, each);
+        });
     }
   }
 
   /** Find data records that overlap with the bounding box.
    * @returns List of `Record["data"]` from overlapped Records. */
   public search(searchBoundary: BoundingBox) {
-    if(this.rootNode === undefined) {
-      throw new Error("Expect tree to be created");
+    if (this.rootNode) {
+      return this
+        .recursiveSearchOverlappingNodes(this.searchRect(searchBoundary), this.rootNode)
+        .map(node => node.data);
     }
-    if(searchBoundary.x < 0) {
-      throw new Error("Expect X coordinate to be >= 0");
-    }
-    if(searchBoundary.y < 0) {
-      throw new Error("Expect Y coordinate to be >= 0");
-    }
-    if(searchBoundary.height < 0) {
-      throw new Error("Expect `height` to be >= 0");
-    }
-    if(searchBoundary.width < 0) {
-      throw new Error("Expect `width` to be >= 0");
-    }
-
-    const searchRect = new RTreeRectangle(searchBoundary);
-
-    return this
-      .recursiveSearchForOverlappingNodes(searchRect, this.rootNode)
-      .map(node => node.data);
   }
+
+  public visit(searchBoundary: BoundingBox, each: CallableFunction):void {
+    if (this.rootNode) {
+      this.recursiveVisitOverlappingNodes(this.searchRect(searchBoundary), this.rootNode, each);
+    }
+  }
+
+  private searchRect(searchBoundary: BoundingBox) {
+    if (this.rootNode === undefined)
+      throw new Error("Expect tree to be created");
+
+    if (searchBoundary.x < 0)
+      throw new Error("Expect X coordinate to be >= 0");
+
+    if (searchBoundary.y < 0)
+      throw new Error("Expect Y coordinate to be >= 0");
+
+    if (searchBoundary.height < 0)
+      throw new Error("Expect `height` to be >= 0");
+
+    if (searchBoundary.width < 0)
+      throw new Error("Expect `width` to be >= 0");
+
+
+    return new RTreeRectangle(searchBoundary);
+  }
+
 
   /** Insert a single record to the RTree and re-balance the tree if it violates `maxChildrenPerNode`.  */
   public insert(record: Record): void {
-    if(record.x < 0) {
+    if (record.x < 0) {
       throw new Error("Expect X coordinate to be >= 0");
     }
-    if(record.y < 0) {
+    if (record.y < 0) {
       throw new Error("Expect Y coordinate to be >= 0");
     }
-    if("height" in record && record.height < 0) {
+    if ("height" in record && record.height < 0) {
       throw new Error("Expect `height` to be >= 0 if defined");
     }
-    if("width" in record && record.width < 0) {
+    if ("width" in record && record.width < 0) {
       throw new Error("Expect `width` to be >= 0 if defined");
     }
 
@@ -83,7 +112,7 @@ export class RTree {
     const insertRect = new RTreeRectangle(record);
 
     // Since the rootNode is not defined, this is the first node in the tree.
-    if(!this.rootNode) {
+    if (!this.rootNode) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { data, ...boundingBox } = record;
       this.rootNode = new RTreeRectangle(boundingBox);
@@ -165,20 +194,20 @@ export class RTree {
     /** List of data records to insert in a R-tree structure. */
     records: Array<Record>
   ) {
-    if(this.rootNode !== undefined) {
+    if (this.rootNode !== undefined) {
       throw new Error("Expect tree to be empty before batch inserting nodes");
     }
-    for(const record of records) {
-      if(record.x < 0) {
+    for (const record of records) {
+      if (record.x < 0) {
         throw new Error("Expect X coordinate to be >= 0");
       }
-      if(record.y < 0) {
+      if (record.y < 0) {
         throw new Error("Expect Y coordinate to be >= 0");
       }
-      if("height" in record && record.height < 0) {
+      if ("height" in record && record.height < 0) {
         throw new Error("Expect `height` to be >= 0 if defined");
       }
-      if("width" in record && record.width < 0) {
+      if ("width" in record && record.width < 0) {
         throw new Error("Expect `width` to be >= 0 if defined");
       }
     }
@@ -193,7 +222,7 @@ export class RTree {
 
   /** Move `leaf` if the node's parent contains more than `maxChildrenPerNode` children. */
   private balanceTreePath(leaf: RTreeRectangle): void {
-    if(!leaf.isLeafNode()) {
+    if (!leaf.isLeafNode()) {
       throw new Error("Expect the provided node to be a leaf node");
     }
 
@@ -204,7 +233,7 @@ export class RTree {
       // Remove FIFO node from observed nodes
       const [currentNode] = observedNodes.splice(0, 1) as [RTreeRectangle];
 
-      if(currentNode.children.length > this.maxChildrenPerNode) {
+      if (currentNode.children.length > this.maxChildrenPerNode) {
         // If the current node is an internal tree node, split the node into two siblings with equal number of children
         if (currentNode.parent) {
           const parent = currentNode.parent;

@@ -32,6 +32,18 @@ test("It should be possible to create an RTree by inserting nodes successively",
     width: 2,
     height: 2
   }), [ "Contained point", "Contained area", "Overlapped area" ], "Expect query to return overlapped data entries");
+
+  let count = 0;
+  tree.visit({
+    x: 0,
+    y: 0,
+    width: 2,
+    height: 2
+  }, each => {
+    count++;
+  });
+  t.equals(count, 3);
+
 });
 
 test("It should be possible to create an RTree by batch inserting nodes", async t => {

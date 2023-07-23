@@ -1,14 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2018",
-    "module": "CommonJS",
+    "target": "es6",
+    "module": "None",
     "outDir": "./build",
     "strict": true,
-    "moduleResolution": "Node",
-    "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": false,
-    "inlineSourceMap": true,
-    "inlineSources": true,
+    "forceConsistentCasingInFileNames": true
+//    "inlineSourceMap": true,
+//    "inlineSources": true
   },
-  "include": ["lib", "test", "index.ts", "example" ]
+  "include": ["lib", "test", "index.ts" ]
 }
