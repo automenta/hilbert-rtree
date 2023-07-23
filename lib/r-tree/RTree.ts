@@ -43,16 +43,18 @@ export class RTree {
       // If the query rectangles encapsulates this node, any data points stored within the node
       // rectangle should be returned by the search.
       each(node.getSubtreeData());
-    } else if (node.isLeafNode() && node.overlaps(searchBoundingBox)) {
+    }
+    else if (node.isLeafNode() && node.overlaps(searchBoundingBox)) {
       // If the query overlaps a leaf node, the leaf data shall be returned.
       each(node.getSubtreeData());
-    } else {
+    }
+    else {
       // Recursively search the rectangles intersected by the search query rectangle.
-      node.children
-        .filter(n => n.overlaps(searchBoundingBox))
-        .forEach(n => {
+      for (const n of node.children) {
+        if (n.overlaps(searchBoundingBox)) {
           this.recursiveVisitOverlappingNodes(searchBoundingBox, n, each);
-        });
+        }
+      }
     }
   }
 
@@ -66,27 +68,32 @@ export class RTree {
     }
   }
 
-  public visit(searchBoundary: BoundingBox, each: CallableFunction):void {
+  public visit(searchBoundary: BoundingBox, each: CallableFunction): void {
     if (this.rootNode) {
       this.recursiveVisitOverlappingNodes(this.searchRect(searchBoundary), this.rootNode, each);
     }
   }
 
   private searchRect(searchBoundary: BoundingBox) {
-    if (this.rootNode === undefined)
+    if (this.rootNode === undefined) {
       throw new Error("Expect tree to be created");
+    }
 
-    if (searchBoundary.x < 0)
+    if (searchBoundary.x < 0) {
       throw new Error("Expect X coordinate to be >= 0");
+    }
 
-    if (searchBoundary.y < 0)
+    if (searchBoundary.y < 0) {
       throw new Error("Expect Y coordinate to be >= 0");
+    }
 
-    if (searchBoundary.height < 0)
+    if (searchBoundary.height < 0) {
       throw new Error("Expect `height` to be >= 0");
+    }
 
-    if (searchBoundary.width < 0)
+    if (searchBoundary.width < 0) {
       throw new Error("Expect `width` to be >= 0");
+    }
 
 
     return new RTreeRectangle(searchBoundary);
